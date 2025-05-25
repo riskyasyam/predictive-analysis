@@ -43,7 +43,7 @@ Pada tahap ini, dilakukan pemahaman mendalam terhadap dataset yang akan digunaka
    - Jumlah Fitur (Kolom): Terdapat 28 kolom, termasuk fitur target.
 - Kondisi Data Awal:
    - Missing Values: Berdasarkan pemeriksaan awal pada data yang dimuat, tidak ditemukan nilai yang hilang (missing values) pada dataset.
-   - Duplikasi Data: (Anda perlu menambahkan informasi apakah ada data duplikat dan bagaimana Anda menanganinya jika ada, misalnya: "Tidak ditemukan data duplikat." atau "Ditemukan X baris data duplikat yang kemudian dihapus.")  
+   - Duplikasi Data: Tidak terdapat duplicate data
 
 ### Uraian Seluruh Fitur pada Data :
 Dataset ini mencakup berbagai informasi terkait kondisi medis, demografi, dan gaya hidup responden, yang semuanya berpotensi menjadi prediktor serangan jantung.
