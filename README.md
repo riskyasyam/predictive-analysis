@@ -10,6 +10,8 @@ Penyakit jantung merupakan penyebab kematian tertinggi di Indonesia. Salah satu 
 Menurut laporan WHO dan Kementerian Kesehatan RI, faktor risiko seperti hipertensi, kolesterol tinggi, kebiasaan merokok, obesitas, serta gaya hidup tidak sehat sangat berkontribusi terhadap penyakit kardiovaskular.
 ![Referensi 2](ss2.png)
 
+Model machine learning dalam proyek ini bertujuan untuk membantu menyelesaikan masalah tingginya angka kematian akibat serangan jantung dengan cara menganalisis data medis dan gaya hidup pasien. Dengan mempelajari pola dari data tersebut, model dapat memprediksi kemungkinan seorang individu mengalami serangan jantung. Kemampuan prediksi ini sangat berharga karena memungkinkan identifikasi dini individu berisiko tinggi, sehingga intervensi medis dan perubahan gaya hidup dapat dilakukan lebih awal untuk mencegah terjadinya serangan jantung atau mengurangi dampaknya. Ini berpotensi meningkatkan kualitas layanan kesehatan masyarakat dan menurunkan angka kematian akibat penyakit ini.
+
 ## Referensi:
 - Kementerian Kesehatan RI, "Situasi Penyakit Jantung di Indonesia", 2018.
 - WHO, Cardiovascular Diseases (CVDs), 2021.
@@ -32,9 +34,19 @@ Menurut laporan WHO dan Kementerian Kesehatan RI, faktor risiko seperti hiperten
     - Mengevaluasi performa dengan metrik: accuracy, precision, recall, dan F1-score.
 
 ## Data Understanding
-- **Link Dataset**: <https://www.kaggle.com/datasets/ankushpanday2/heart-attack-prediction-in-indonesia>  
+Pada tahap ini, dilakukan pemahaman mendalam terhadap dataset yang akan digunakan untuk membangun model.
 
-### Variabel-variabel pada Heart Attack Prediction Indonesia dataset adalah sebagai berikut:
+- Tautan Sumber Data: https://www.kaggle.com/datasets/ankushpanday2/heart-attack-prediction-in-indonesia
+- Nama Dataset: Heart Attack Prediction in Indonesia
+- Informasi Dataset Awal:
+   - Jumlah Data: Dataset ini terdiri dari 158.355 sampel (baris).
+   - Jumlah Fitur (Kolom): Terdapat 28 kolom, termasuk fitur target.
+- Kondisi Data Awal:
+   - Missing Values: Berdasarkan pemeriksaan awal pada data yang dimuat, tidak ditemukan nilai yang hilang (missing values) pada dataset.
+   - Duplikasi Data: (Anda perlu menambahkan informasi apakah ada data duplikat dan bagaimana Anda menanganinya jika ada, misalnya: "Tidak ditemukan data duplikat." atau "Ditemukan X baris data duplikat yang kemudian dihapus.")  
+
+### Uraian Seluruh Fitur pada Data :
+Dataset ini mencakup berbagai informasi terkait kondisi medis, demografi, dan gaya hidup responden, yang semuanya berpotensi menjadi prediktor serangan jantung.
 - **age**: Usia responden (dalam tahun).
 - **gender**: Jenis kelamin responden (`Male`/`Female`).
 - **region**: Wilayah tempat tinggal responden.
@@ -64,52 +76,13 @@ Menurut laporan WHO dan Kementerian Kesehatan RI, faktor risiko seperti hiperten
 - **participated_in_free_screening**: Partisipasi dalam skrining gratis (1 = ya, 0 = tidak).
 - **heart_attack**: Target variabel: apakah pernah mengalami serangan jantung (1 = ya, 0 = tidak).
 
-### Drop Column yang tidak penting
-```python
-df = df.drop(['region', 'income_level', 'family_history', 'alcohol_consumption', 'EKG_results', 'participated_in_free_screening'], axis=1)
-```
-Sehingga data tersisa seperti berikut
-
-- **age**: umur responden
-- **gender**: jenis kelamin
-- **smoking_status**: status merokok
-- **physical_activity**: tingkat aktivitas fisik
-- **dietary_habits**: kebiasaan pola makan
-- **air_pollution_exposure**: tingkat paparan polusi udara
-- **stress_level**: tingkat stres
-- **blood_pressure_systolic** / **diastolic**
-- **cholesterol_level**, **HDL**, **LDL**, **triglycerides**
-- **fasting_blood_sugar**, **waist_circumference**
-- **hypertension**, **diabetes**, **obesity**, **previous_heart_disease**, **medication_usage**
-- **heart_attack**: target klasifikasi (0 = tidak, 1 = ya)
-
-### Kondisi Data
-- **Jumlah Sampel Data** = 158355 
-
-### Exploratory Data Analysis (EDA) Missing Values & Outliers
+## Exploratory Data Analysis dan Visualisasi Data
 - **Missing Values** = Tidak ada missing values (0)
 - **Pembagian Data** : Data dibagi menjadi 2 jenis yaitu numeric_features dan categorical_features
 - **Deteksi Outliers Numeric Features dengan IQR** : 
    ![Deteksi Outliers](outliers.png)
    - Grafik ini membandingkan distribusi fitur numerik sebelum (warna merah muda) dan sesudah (warna hijau) penghapusan outlier. Penghapusan outlier bertujuan untuk memperbaiki distribusi data dan menghindari pengaruh negatif nilai ekstrem terhadap model.
-
-- **After Penghapusan Outliers** :
-   ![After Outliers](after.png)
-
-- **Analisis Per Fitur** :
-   - **`age`**: Distribusi usia menunjukkan beberapa nilai ekstrem di atas 85 tahun yang dikategorikan sebagai outlier. Setelah dihapus, distribusi menjadi lebih simetris.
-  
-   - **`cholesterol_level`**, **`cholesterol_hdl`**, **`cholesterol_ldl`**: Masing-masing menunjukkan distribusi mendekati normal, namun memiliki beberapa nilai sangat tinggi. Penghapusan outlier memperhalus kurva distribusi.
-  
-   - **`waist_circumference`**: Beberapa nilai sangat rendah atau sangat tinggi dikategorikan sebagai outlier. Setelah dihapus, data lebih terkonsentrasi di tengah distribusi.
-
-   - **`sleep_hours`**: Terdapat lonjakan tidak wajar pada jam tidur ekstrem (misalnya > 9 jam). Setelah penghapusan, distribusi menjadi lebih wajar.
-
-   - **`blood_pressure_systolic` & `blood_pressure_diastolic`**: Keduanya menunjukkan distribusi normal dengan sedikit outlier ekstrem di bawah/atas ambang klinis.
-
-   - **`fasting_blood_sugar`**: Menampilkan distribusi skewed kanan, dengan banyak outlier di atas 160 mg/dL. Setelah penghapusan, distribusi menjadi lebih ramping.
-
-   - **`triglycerides`**: Outlier yang sangat tinggi mempengaruhi bentuk distribusi. Setelah dibersihkan, histogram menjadi lebih simetris.
+   - Setelah dilakukan deteksi outliers terdapat beberapa outliers seperti di age >85 sangat ekstrim sehingga terdeteksi outliers. lanjut EDA Univariate
 
 ### Exploratory Data Analysis (EDA) Univariate
 - **Distribusi Variabel Kategorikal** : 
@@ -162,18 +135,39 @@ Sehingga data tersisa seperti berikut
 - Menyeimbangkan Data (Handling Imbalance)
 - Meningkatkan Performa dan Akurasi Model
 
+**Penghapusan Fitur (Drop)**
+Beberapa fitur dihilangkan karena dianggap kurang relevan untuk prediksi serangan jantung dalam konteks model ini, atau karena alasan privasi dan potensi bias. Fitur yang dihapus adalah: 
+- region, 
+- income_level,
+- family_history,
+- alcohol_consumption,
+- EKG_results, 
+- participated_in_free_screening.
+Jumlah fitur setelah drop: 22 (termasuk target).
+
+**Pengananan Outliers**
+Outlier pada fitur numerik dideteksi menggunakan metode Interquartile Range (IQR). Nilai yang berada di luar rentang (Q1−1.5 timesIQR) hingga (Q3+1.5 timesIQR) diidentifikasi sebagai outlier dan kemudian dihapus dari dataset.
+
+- Tujuan: Menghindari pengaruh negatif nilai ekstrem terhadap performa model dan memperbaiki distribusi data.
+- Visualisasi Perbandingan Distribusi: 
+   ![Perbandingan Distribusi Outliers](after.png)
+- Setelah dilakukan penghapusan outliers data sebagai berikut : 
+   - **`age`**: Distribusi usia menunjukkan beberapa nilai ekstrem di atas 85 tahun yang dikategorikan sebagai outlier. Setelah dihapus, distribusi menjadi lebih simetris.
+  
+   - **`cholesterol_level`**, **`cholesterol_hdl`**, **`cholesterol_ldl`**: Masing-masing menunjukkan distribusi mendekati normal, namun memiliki beberapa nilai sangat tinggi. Penghapusan outlier memperhalus kurva distribusi.
+  
+   - **`waist_circumference`**: Beberapa nilai sangat rendah atau sangat tinggi dikategorikan sebagai outlier. Setelah dihapus, data lebih terkonsentrasi di tengah distribusi.
+
+   - **`sleep_hours`**: Terdapat lonjakan tidak wajar pada jam tidur ekstrem (misalnya > 9 jam). Setelah penghapusan, distribusi menjadi lebih wajar.
+
+   - **`blood_pressure_systolic` & `blood_pressure_diastolic`**: Keduanya menunjukkan distribusi normal dengan sedikit outlier ekstrem di bawah/atas ambang klinis.
+
+   - **`fasting_blood_sugar`**: Menampilkan distribusi skewed kanan, dengan banyak outlier di atas 160 mg/dL. Setelah penghapusan, distribusi menjadi lebih ramping.
+
+   - **`triglycerides`**: Outlier yang sangat tinggi mempengaruhi bentuk distribusi. Setelah dibersihkan, histogram menjadi lebih simetris.
+
+
 **One Hot Encoding**
-- Melakukan one hot encoding pada data categorical dengan code berikut
-```python
-# Buat encoder
-ohe = OneHotEncoder(drop='first', sparse_output=False)
-
-# Encode fitur kategorikal
-encoded_cat = ohe.fit_transform(df[categorical_features])
-encoded_cat_df = pd.DataFrame(encoded_cat, columns=ohe.get_feature_names_out(categorical_features), index=df.index)
-
-encoded_cat_df.head()
-```
 | gender_Male | smoking_status_Never | smoking_status_Past | physical_activity_Low | physical_activity_Moderate | dietary_habits_Unhealthy | air_pollution_exposure_Low | air_pollution_exposure_Moderate | stress_level_Low | stress_level_Moderate | hypertension_1 | diabetes_1 | obesity_1 | previous_heart_disease_1 | medication_usage_1 |
 |-------------|----------------------|----------------------|------------------------|-----------------------------|--------------------------|----------------------------|-------------------------------|-------------------|------------------------|----------------|-------------|------------|--------------------------|---------------------|
 | 1.0         | 1.0                  | 0.0                  | 0.0                    | 0.0                         | 1.0                      | 0.0                        | 1.0                           | 0.0               | 1.0                    | 0.0            | 1.0         | 0.0        | 0.0                      | 0.0                 |
@@ -182,19 +176,9 @@ encoded_cat_df.head()
 | 1.0         | 1.0                  | 0.0                  | 0.0                    | 1.0                         | 1.0                      | 1.0                        | 0.0                           | 0.0               | 0.0                    | 1.0            | 0.0         | 0.0        | 0.0                      | 1.0                 |
 | 1.0         | 0.0                  | 0.0                  | 0.0                    | 1.0                         | 1.0                      | 0.0                        | 0.0                           | 0.0               | 1.0                    | 1.0            | 0.0         | 0.0        | 1.0                      | 0.0                 |
 
+Fitur-fitur kategorikal yang tersisa (gender, smoking_status, physical_activity, dietary_habits, air_pollution_exposure, stress_level, serta fitur biner seperti hypertension, diabetes, obesity, previous_heart_disease, medication_usage) diubah menjadi representasi numerik menggunakan teknik One-Hot Encoding. Parameter drop='first' digunakan untuk menghindari multikolinearitas (dummy variable trap). Ini menghasilkan kolom-kolom biner baru untuk setiap kategori unik dalam fitur asli (dikurangi satu untuk dummy trap).
+
 **Train Data with Scaler** : 
-```python
-X_raw = pd.concat([df[numeric_features], encoded_cat_df], axis=1)
-y = df['heart_attack'].astype(int)
-
-X_train_raw, X_test_raw, y_train, y_test = train_test_split(
-    X_raw, y, test_size=0.2, random_state=42, stratify=y
-
-scaler = StandardScaler()
-X_train = scaler.fit_transform(X_train_raw)
-X_test = scaler.transform(X_test_raw)
-)
-```
 - Fitur kategorikal seperti gender, smoking_status, dll. diubah menjadi numerik dengan teknik One-Hot Encoding, sambil menghindari dummy trap (drop='first').
 - Hasil encoding ini kemudian digabung dengan fitur numerik lain seperti age, blood_pressure, dll.
 - Seluruh data numerik (gabungan fitur asli dan hasil encoding) diskalakan menggunakan StandardScaler agar semua fitur memiliki mean 0 dan standar deviasi 1.
@@ -204,67 +188,65 @@ X_test = scaler.transform(X_test_raw)
 - PCA dilakukan pada data hasil scaling, khususnya hanya pada data training.
 - Tujuannya adalah mereduksi dimensi data menjadi hanya 2 komponen utama (PCA1 dan PCA2) yang menangkap variansi terbesar dari data asli.
 - Hasil transformasi ini membentuk X_pca.
-```python
-# PCA pada data training (bisa juga pada gabungan train+test kalau hanya untuk visualisasi)
-pca = PCA(n_components=2)
-X_pca = pca.fit_transform(X_train)
-
-# Buat dataframe untuk plot
-pca_df = pd.DataFrame(data=X_pca, columns=['PCA1', 'PCA2'])
-pca_df['heart_attack'] = y_train.values
-
-# Pairplot
-sns.pairplot(pca_df, hue='heart_attack', palette='Set1')
-plt.suptitle("PCA Pairplot (2 Komponen Utama)", y=1.02)
-plt.show()
-```
 ![PCA Pairplot 2 Komponen Utama](pca.png)
 
 
 ## Modeling
-Empat model klasifikasi diterapkan:
+Pada tahap ini, beberapa algoritma machine learning untuk klasifikasi diterapkan dan dilatih menggunakan data yang telah dipersiapkan.
 
-Empat model klasifikasi telah diterapkan untuk memprediksi serangan jantung. Berikut ringkasan kinerjanya:
+1. Logistic Regression:
+- Cara Kerja: Logistic Regression adalah algoritma klasifikasi linier yang memprediksi probabilitas suatu kejadian (dalam kasus ini, serangan jantung) dengan mencocokkan data pada fungsi logit. Model ini mencari hubungan linier antara fitur input dan log-odds dari kelas target.
+- Implementasi & Parameter yang Digunakan:
+   - Model diinisialisasi menggunakan LogisticRegression().
+   - class_weight='balanced': Parameter ini digunakan untuk secara otomatis menyesuaikan bobot kelas berbanding terbalik dengan frekuensi kelas dalam data input. Ini bertujuan untuk menangani ketidakseimbangan kelas dalam variabel target heart_attack.
+   - max_iter=500: Menentukan jumlah maksimum iterasi yang diambil oleh solver untuk konvergen.
+   - Parameter lain seperti solver, penalty, dan C menggunakan nilai default dari library scikit-learn.
 
-1. **Logistic Regression** (`class_weight='balanced'`)
-   - Precision (positif): 0.40
-   - Recall (positif): 0.58
-   - F1-score: 0.48
-   - Akurasi: **48.6%**
-   - Model mampu mengimbangi distribusi kelas, namun akurasi keseluruhan masih rendah.
+2. Support Vector Machine (SVM):
+- Cara Kerja: SVM bekerja dengan mencari hyperplane terbaik dalam ruang N-dimensi (dimana N adalah jumlah fitur) yang secara optimal memisahkan titik-titik data ke dalam kelas-kelas yang berbeda. Tujuannya adalah untuk memaksimalkan margin (jarak) antara titik data terdekat dari setiap kelas (support vectors) ke hyperplane.
+- Implementasi & Parameter yang Digunakan:
+   - Model diinisialisasi menggunakan SVC().
+   - kernel='linear': Menentukan bahwa model akan menggunakan kernel linier. Ini berarti SVM akan mencoba memisahkan data menggunakan garis lurus (dalam 2D) atau hyperplane (dalam dimensi lebih tinggi) tanpa mentransformasi data ke ruang fitur yang lebih tinggi.
+   - Parameter lain seperti C (parameter regularisasi) dan gamma menggunakan nilai default dari library scikit-learn.
+   - Model dilatih menggunakan X_pca dan y_train.
 
-2. **Support Vector Machine**
-   - Precision (positif): 0.00
-   - Recall (positif): 0.00
-   - F1-score: 0.00
-   - Akurasi: **59.9%**
-   - Meskipun akurasi cukup tinggi, model gagal total dalam mengidentifikasi kasus serangan jantung (kelas positif), sehingga tidak dapat diandalkan secara prediktif.
+3. K-Nearest Neighbors (KNN):
+- Cara Kerja: KNN adalah algoritma non-parametrik dan instance-based learning. Untuk mengklasifikasikan data baru, KNN mencari K sampel terdekat (tetangga) dari data tersebut dalam data latih berdasarkan metrik jarak tertentu (misalnya, Euclidean distance). Kelas mayoritas di antara K tetangga tersebut kemudian ditetapkan sebagai kelas prediksi untuk data baru.
+- Implementasi & Parameter yang Digunakan:
+   - Model diinisialisasi menggunakan KNeighborsClassifier().
+   - Semua parameter menggunakan nilai default dari library scikit-learn. Ini termasuk:
+   - n_neighbors=5: Jumlah tetangga terdekat yang dipertimbangkan.
+   - weights='uniform': Semua titik dalam setiap lingkungan diberi bobot yang sama.
+   - metric='minkowski' (dengan p=2, yang setara dengan jarak Euclidean).
+   - Model dilatih menggunakan X_pca dan y_train.
 
-3. **K-Nearest Neighbors**
-   - Precision (positif): 0.67
-   - Recall (positif): 0.55
-   - F1-score: 0.60
-   - Akurasi: **71.1%**
-   - Model dengan keseimbangan terbaik antara presisi dan recall. Performa keseluruhan paling stabil.
-
-4. **XGBoost Classifier**
-   - Precision (positif): 0.70
-   - Recall (positif): 0.14
-   - F1-score: 0.23
-   - Akurasi: **63.0%**
-   - Precision tinggi namun recall sangat rendah, artinya model sering salah mengklasifikasikan kasus positif.
-
-
-**Model Terbaik:**  
-K-Nearest Neighbors** menunjukkan trade-off terbaik antara precision dan recall, serta memberikan akurasi tertinggi di antara semua model. Ini menjadikannya pilihan paling optimal dalam konteks dataset ini.
+4. XGBoost Classifier (Extreme Gradient Boosting):
+- Cara Kerja: XGBoost adalah implementasi dari algoritma gradient boosting yang sangat efisien dan powerful. Algoritma ini membangun model secara ensemble (gabungan) dari banyak decision tree yang lemah secara sekuensial. Setiap tree baru dibangun untuk memperbaiki kesalahan dari tree sebelumnya. XGBoost menggunakan regularisasi (L1 dan L2) untuk mencegah overfitting dan memiliki banyak optimasi untuk kecepatan dan performa.
+- Implementasi & Parameter yang Digunakan:
+   - Model diinisialisasi menggunakan XGBClassifier().
+   - use_label_encoder=False: Parameter ini digunakan untuk menonaktifkan penggunaan LabelEncoder internal dan menghindari peringatan terkait deprecation.
+   - eval_metric='mlogloss': Metrik yang digunakan untuk evaluasi selama proses training jika ada set validasi (atau untuk tujuan internal). 'mlogloss' adalah metrik LogLoss untuk klasifikasi multikelas (juga bekerja untuk biner).
+   - Parameter lain yang fundamental seperti n_estimators (jumlah pohon), learning_rate, max_depth (kedalaman maksimum pohon), dll., menggunakan nilai default dari library XGBoost.
+   - Model dilatih menggunakan X_pca dan y_train.
 
 ## Evaluation
+Tahap evaluasi bertujuan untuk mengukur seberapa baik performa model-model yang telah dilatih dalam memprediksi serangan jantung pada data uji.
+
 ### Metrik yang Digunakan
 
-- **Accuracy**: proporsi prediksi benar
-- **Precision**: ketepatan model memprediksi kelas 1
-- **Recall**: kemampuan model mendeteksi kelas 1
-- **F1-score**: harmonisasi precision dan recall
+- **Accuracy**: Proporsi total prediksi yang benar dari keseluruhan data uji. Formula: (TP+TN)/(TP+TN+FP+FN)
+- **Precision (untuk kelas 1 - serangan jantung)**: Dari semua prediksi yang menyatakan pasien mengalami serangan jantung, berapa banyak yang benar-benar mengalami serangan jantung. Penting untuk menghindari false positive yang berlebihan. Formula: TP/(TP+FP)
+- **Recall (Sensitivity) (untuk kelas 1 - serangan jantung)**: Dari semua pasien yang sebenarnya mengalami serangan jantung, berapa banyak yang berhasil diprediksi dengan benar oleh model. Ini sangat krusial dalam konteks medis karena kegagalan mendeteksi kasus positif (false negative) bisa berakibat fatal. Formula: TP/(TP+FN)
+- **F1-score (untuk kelas 1 - serangan jantung)**: Rata-rata harmonik dari precision dan recall. Memberikan keseimbangan antara kedua metrik tersebut. Formula: 2
+times(Precision
+timesRecall)/(Precision+Recall)
+
+**Dimana:**
+- TP (True Positive): Pasien serangan jantung yang diprediksi serangan jantung.
+- TN (True Negative): Pasien tidak serangan jantung yang diprediksi tidak serangan jantung.
+- FP (False Positive): Pasien tidak serangan jantung yang diprediksi serangan jantung.
+- FN (False Negative): Pasien serangan jantung yang diprediksi tidak serangan jantung.
+
 
 ### Hasil Evaluasi Model
 
@@ -275,12 +257,26 @@ K-Nearest Neighbors** menunjukkan trade-off terbaik antara precision dan recall,
 | KNN                 | 0.7110   | 0.67           | 0.55       | 0.60         |
 | XGBoost             | 0.6303   | 0.70           | 0.14       | 0.23         |
 
-**Formula**
-- Accuracy = TP + TN / TP + TN + FP + FN
-​- Precision= 𝑇𝑃 / 𝑇𝑃 + 𝐹𝑃
-​- Recall= TP / TP + FN
-- F1-score=2 × Precision×Recall / Precision+Recall
+### Analisis Hasil dan Hubungan dengan Business Understanding:
+
+**Menjawab Problem Statement (PS1 & PS2):**
+- **PS1 (Bagaimana cara memprediksi kemungkinan serangan jantung?):** Proyek ini menunjukkan bahwa machine learning dapat digunakan untuk memprediksi kemungkinan serangan jantung dengan menganalisis data kesehatan. Model seperti KNN menunjukkan kemampuan yang cukup baik dalam tugas ini, meskipun akurasinya belum sempurna.
+- **PS2 (Algoritma machine learning mana yang paling efektif?):** Berdasarkan metrik evaluasi, K-Nearest Neighbors (KNN) terbukti menjadi algoritma yang paling efektif secara keseluruhan untuk dataset dan konfigurasi ini. KNN memberikan akurasi tertinggi (71.1%) dan F1-score terbaik (0.60) untuk kelas positif, menunjukkan keseimbangan yang relatif baik antara precision (0.67) dan recall (0.55).
+   - SVM gagal total dalam mengidentifikasi kasus positif (recall dan precision 0.00 untuk kelas 1), menjadikannya tidak berguna meskipun akurasinya lebih tinggi dari Logistic Regression. Ini kemungkinan disebabkan oleh ketidakseimbangan kelas atau pemilihan parameter/kernel yang kurang tepat.
+   - XGBoost, meskipun memiliki precision tertinggi (0.70), memiliki recall yang sangat rendah (0.14), artinya banyak kasus serangan jantung yang terlewatkan.
+   - Logistic Regression dengan class_weight='balanced' menunjukkan recall yang lebih baik (0.58) dibandingkan precisionnya (0.40), namun akurasi keseluruhannya paling rendah.
+**Mencapai Goals (G1 & G2):**
+- G1 (Membangun model prediksi dengan akurasi dan performa metrik yang layak): Model KNN mencapai akurasi 71.1% dan F1-score 0.60 untuk prediksi serangan jantung. Meskipun ini adalah hasil terbaik di antara model yang diuji dan menunjukkan potensi, "layak" dalam konteks medis mungkin memerlukan standar yang lebih tinggi, terutama untuk recall. Ada ruang untuk peningkatan lebih lanjut.
+- G2 (Membandingkan performa beberapa algoritma): Tujuan ini tercapai. Empat algoritma berbeda telah diimplementasikan dan dievaluasi, memberikan wawasan tentang kekuatan dan kelemahan masing-masing pada dataset ini.
+**Dampak Solution Statements:**
+- Menerapkan empat algoritma klasifikasi: Ini sangat berdampak karena memungkinkan perbandingan langsung dan pemilihan model yang paling sesuai. Tanpa perbandingan ini, kita tidak akan tahu bahwa KNN adalah yang terbaik di antara opsi yang diuji.
+- Melakukan balancing pada kelas target (contoh class_weight='balanced' untuk Logistic Regression): Untuk Logistic Regression, penggunaan class_weight='balanced' membantu meningkatkan recall untuk kelas positif (0.58), yang penting dalam konteks medis. Tanpa ini, model mungkin akan lebih bias ke kelas mayoritas. Meskipun akurasi keseluruhan LR rendah, teknik ini menunjukkan dampak positif pada sensitivitas model terhadap kelas minoritas. Untuk model lain, jika ketidakseimbangan data masih menjadi isu, teknik balancing lain (seperti SMOTE atau undersampling) bisa dieksplorasi.
+- Mengevaluasi performa dengan metrik komprehensif: Penggunaan accuracy, precision, recall, dan F1-score memberikan pandangan yang lebih holistik daripada hanya accuracy. Misalnya, SVM memiliki accuracy 60%, namun precision dan recall 0 untuk kelas positif, yang tidak akan terlihat jika hanya melihat accuracy. Metrik ini krusial untuk memahami trade-off, terutama pentingnya recall dalam kasus medis.
+
+### Kesimpulan Evaluasi:
+Model KNN menunjukkan performa terbaik secara keseluruhan pada dataset ini dengan akurasi 71.1% dan F1-score 0.60 untuk prediksi serangan jantung. Meskipun demikian, recall sebesar 0.55 untuk kasus serangan jantung (kelas 1) mengindikasikan bahwa model masih melewatkan sekitar 45% kasus aktual. Dalam aplikasi medis, recall yang tinggi seringkali lebih diutamakan untuk meminimalkan risiko pasien tidak terdeteksi. SVM gagal total dalam memprediksi kelas positif. XGBoost memiliki presisi yang baik tetapi recall yang sangat buruk. Logistic Regression dengan penyeimbangan kelas menunjukkan upaya untuk menangani ketidakseimbangan tetapi performa keseluruhannya masih di bawah KNN.
+
+Untuk implementasi nyata, perlu dipertimbangkan lebih lanjut bagaimana meningkatkan recall model KNN atau mengeksplorasi teknik lain seperti hyperparameter tuning yang lebih ekstensif, feature engineering yang lebih canggih, atau penggunaan teknik ensemble yang berbeda, serta validasi dengan data yang lebih beragam.
 
 
 
-**---Ini adalah bagian akhir laporan---**
