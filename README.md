@@ -135,7 +135,7 @@ Dataset ini mencakup berbagai informasi terkait kondisi medis, demografi, dan ga
 - Menyeimbangkan Data (Handling Imbalance)
 - Meningkatkan Performa dan Akurasi Model
 
-**Penghapusan Fitur (Drop)**
+**Penghapusan Fitur (Feature Dropping)**
 Beberapa fitur dihilangkan karena dianggap kurang relevan untuk prediksi serangan jantung dalam konteks model ini, atau karena alasan privasi dan potensi bias. Fitur yang dihapus adalah: 
 - region, 
 - income_level,
@@ -176,70 +176,81 @@ Outlier pada fitur numerik dideteksi menggunakan metode Interquartile Range (IQR
 | 1.0         | 1.0                  | 0.0                  | 0.0                    | 1.0                         | 1.0                      | 1.0                        | 0.0                           | 0.0               | 0.0                    | 1.0            | 0.0         | 0.0        | 0.0                      | 1.0                 |
 | 1.0         | 0.0                  | 0.0                  | 0.0                    | 1.0                         | 1.0                      | 0.0                        | 0.0                           | 0.0               | 1.0                    | 1.0            | 0.0         | 0.0        | 1.0                      | 0.0                 |
 
-Fitur-fitur kategorikal yang tersisa (gender, smoking_status, physical_activity, dietary_habits, air_pollution_exposure, stress_level, serta fitur biner seperti hypertension, diabetes, obesity, previous_heart_disease, medication_usage) diubah menjadi representasi numerik menggunakan teknik One-Hot Encoding. Parameter drop='first' digunakan untuk menghindari multikolinearitas (dummy variable trap). Ini menghasilkan kolom-kolom biner baru untuk setiap kategori unik dalam fitur asli (dikurangi satu untuk dummy trap).
+Fitur-fitur kategorikal yang tersisa dalam df_no_outliers (seperti gender, smoking_status, physical_activity, dietary_habits, air_pollution_exposure, stress_level, serta fitur biner lainnya) diubah menjadi representasi numerik menggunakan teknik One-Hot Encoding.
+- Parameter drop='first' digunakan selama proses encoding ini untuk menghindari multicollinearity (dummy variable trap) dengan menghapus satu kolom dari setiap set kolom biner yang dihasilkan per fitur.
+- Hasil dari proses ini adalah DataFrame encoded_cat_df yang berisi fitur-fitur kategorikal dalam format numerik (0 atau 1), dengan nama kolom yang dihasilkan secara otomatis (misalnya, gender_Male, smoking_status_Never, dll.). Indeks dari encoded_cat_df disamakan dengan df_no_outliers untuk memastikan konsistensi saat penggabungan.
 
-**Train Data with Scaler** : 
-- Fitur kategorikal seperti gender, smoking_status, dll. diubah menjadi numerik dengan teknik One-Hot Encoding, sambil menghindari dummy trap (drop='first').
-- Hasil encoding ini kemudian digabung dengan fitur numerik lain seperti age, blood_pressure, dll.
-- Seluruh data numerik (gabungan fitur asli dan hasil encoding) diskalakan menggunakan StandardScaler agar semua fitur memiliki mean 0 dan standar deviasi 1.
-- Ini penting karena PCA sensitif terhadap skala data.
-
-**PCA** :
-- PCA dilakukan pada data hasil scaling, khususnya hanya pada data training.
-- Tujuannya adalah mereduksi dimensi data menjadi hanya 2 komponen utama (PCA1 dan PCA2) yang menangkap variansi terbesar dari data asli.
-- Hasil transformasi ini membentuk X_pca.
-![PCA Pairplot 2 Komponen Utama](pca.png)
+**Pembentukan Matriks Fitur (X_raw) dan Vektor Target (y)**
+Setelah fitur kategorikal di-encode:
+   - Matriks fitur lengkap (X_raw) dibentuk dengan menggabungkan fitur-fitur numerik (yang diambil dari df_no_outliers[numeric_features]) dengan DataFrame hasil one-hot encoding (encoded_cat_df). Penggabungan dilakukan secara horizontal (axis=1).
+   - Vektor target (y) disiapkan dengan mengambil kolom heart_attack dari df_no_outliers dan mengubah tipe datanya menjadi integer.
+Langkah ini memastikan bahwa X_raw berisi semua fitur independen dalam format numerik, dan y berisi variabel dependen, keduanya dengan jumlah sampel yang konsisten.
 
 
+
+**Pembagian Data (Train-Test Split)** : 
+Dataset yang telah disiapkan (X_raw dan y) kemudian dibagi menjadi dua set: data latih (training set) dan data uji (test set).
+
+- Proporsi pembagian adalah 80% untuk data latih dan 20% untuk data uji (test_size=0.2).
+- Parameter random_state=42 digunakan untuk memastikan bahwa pembagian data bersifat reproduktif (hasilnya akan selalu sama setiap kali kode dijalankan).
+- Parameter stratify=y digunakan untuk menjaga agar proporsi kelas target (jumlah kasus serangan jantung dan tidak serangan jantung) seimbang dan representatif pada kedua set data (latih dan uji) seperti pada dataset keseluruhan.
+
+**Standardisasi Fitur (Feature Scaling)**
+Fitur-fitur numerik dalam data latih dan data uji kemudian distandardisasi menggunakan StandardScaler dari scikit-learn.
+
+- Objek StandardScaler diinisialisasi dan kemudian metode fit_transform() diterapkan pada data latih (X_train_raw). Proses fit() menghitung rata-rata dan standar deviasi dari data latih, dan transform() menerapkannya untuk menstandardisasi data latih tersebut menjadi X_train_scaled.
+- Selanjutnya, metode transform() (tanpa fit() lagi) diterapkan pada data uji (X_test_raw) menggunakan parameter (rata-rata dan standar deviasi) yang telah dipelajari dari data latih. Hasilnya adalah X_test_scaled.
+- Standardisasi ini penting karena mengubah skala fitur agar memiliki rata-rata 0 dan standar deviasi 1. Ini membantu algoritma yang sensitif terhadap skala fitur (seperti SVM, Logistic Regression dengan regularisasi, KNN) dan juga merupakan prasyarat yang baik untuk Principal Component Analysis (PCA).
+
+
+**Principal Component Analysis (PCA) untuk Reduksi Dimensi** :
+Setelah standardisasi, PCA diterapkan pada data latih yang telah diskalakan (X_train_scaled) untuk mengurangi jumlah dimensi (fitur) sambil berusaha mempertahankan sebanyak mungkin informasi (varians) penting dari data asli.
+
+- Penentuan Jumlah Komponen Optimal: Jumlah komponen utama yang optimal ditentukan dengan menganalisis plot kumulatif explained variance ratio (seperti yang ditunjukkan pada gambar image_287db5.png atau image_33d2be.png). Berdasarkan analisis ini, 21 komponen utama (n_components_optimal = 21) dipilih karena mampu menjelaskan sekitar 93.58% dari total varians dalam data.
+- Transformasi Data: Objek PCA dengan 21 komponen kemudian di-fit_transform pada X_train_scaled untuk menghasilkan X_train_pca_optimal, dan di-transform pada X_test_scaled untuk menghasilkan X_test_pca_optimal.
+- Hasil Reduksi: Setelah PCA, data latih (X_train_pca_optimal) memiliki shape (120539, 21) dan data uji (X_test_pca_optimal) memiliki shape (30135, 21).
+
+Dengan langkah-langkah persiapan data ini, dataset kini siap untuk digunakan dalam tahap pengembangan dan pelatihan model machine learning. Representasi fitur yang telah direduksi dimensinya namun tetap kaya informasi diharapkan dapat membantu model untuk belajar pola dengan lebih efektif.
 ## Modeling
-Pada tahap ini, beberapa algoritma machine learning untuk klasifikasi diterapkan dan dilatih menggunakan data yang telah dipersiapkan.
+Pada tahap ini, beberapa algoritma machine learning untuk klasifikasi diterapkan dan dilatih menggunakan data yang telah dipersiapkan secara optimal, yaitu X_train_pca_optimal (data latih yang telah melalui scaling dan reduksi dimensi menjadi 21 komponen utama menggunakan PCA) dan y_train (variabel target untuk data latih).
 
 1. Logistic Regression:
-- Cara Kerja: Logistic Regression adalah algoritma klasifikasi linier yang memprediksi probabilitas suatu kejadian (dalam kasus ini, serangan jantung) dengan mencocokkan data pada fungsi logit. Model ini mencari hubungan linier antara fitur input dan log-odds dari kelas target.
+- Cara Kerja: Logistic Regression adalah algoritma klasifikasi linier yang memprediksi probabilitas suatu kejadian dengan mencocokkan data pada fungsi logit. Model ini mencari hubungan linier antara fitur input dan log-odds dari kelas target.
 - Implementasi & Parameter yang Digunakan:
    - Model diinisialisasi menggunakan LogisticRegression().
-   - class_weight='balanced': Parameter ini digunakan untuk secara otomatis menyesuaikan bobot kelas berbanding terbalik dengan frekuensi kelas dalam data input. Ini bertujuan untuk menangani ketidakseimbangan kelas dalam variabel target heart_attack.
-   - max_iter=500: Menentukan jumlah maksimum iterasi yang diambil oleh solver untuk konvergen.
-   - Parameter lain seperti solver, penalty, dan C menggunakan nilai default dari library scikit-learn.
+   - class_weight='balanced': Parameter ini digunakan untuk menyesuaikan bobot kelas secara otomatis guna menangani ketidakseimbangan kelas dalam variabel target heart_attack.
+   - max_iter disesuaikan (misalnya, 500 atau 1000) untuk memastikan konvergensi.
+   - Parameter lain seperti solver dan C (parameter regularisasi) menggunakan nilai default dari library scikit-learn pada iterasi ini.
 
-2. Support Vector Machine (SVM):
-- Cara Kerja: SVM bekerja dengan mencari hyperplane terbaik dalam ruang N-dimensi (dimana N adalah jumlah fitur) yang secara optimal memisahkan titik-titik data ke dalam kelas-kelas yang berbeda. Tujuannya adalah untuk memaksimalkan margin (jarak) antara titik data terdekat dari setiap kelas (support vectors) ke hyperplane.
+2. Support Vector Machine (LinearSVC):
+- Cara Kerja: Linear Support Vector Classification (LinearSVC) bertujuan untuk menemukan hyperplane terbaik yang memisahkan dua kelas dalam ruang fitur. Model ini efisien untuk data berdimensi tinggi dan dataset besar ketika menggunakan kernel linear.
 - Implementasi & Parameter yang Digunakan:
-   - Model diinisialisasi menggunakan SVC().
-   - kernel='linear': Menentukan bahwa model akan menggunakan kernel linier. Ini berarti SVM akan mencoba memisahkan data menggunakan garis lurus (dalam 2D) atau hyperplane (dalam dimensi lebih tinggi) tanpa mentransformasi data ke ruang fitur yang lebih tinggi.
-   - Parameter lain seperti C (parameter regularisasi) dan gamma menggunakan nilai default dari library scikit-learn.
-   - Model dilatih menggunakan X_pca dan y_train.
+   - Model diinisialisasi menggunakan LinearSVC(), yang merupakan implementasi SVM linear yang lebih cepat dibandingkan SVC(kernel='linear') untuk dataset besar.
+   - Parameter yang digunakan antara lain random_state=42 untuk reproduktifitas, C=1.0 (parameter regularisasi default), max_iter=2000 (untuk memastikan konvergensi), dan dual=False (direkomendasikan ketika jumlah sampel lebih besar dari jumlah fitur).
 
 3. K-Nearest Neighbors (KNN):
-- Cara Kerja: KNN adalah algoritma non-parametrik dan instance-based learning. Untuk mengklasifikasikan data baru, KNN mencari K sampel terdekat (tetangga) dari data tersebut dalam data latih berdasarkan metrik jarak tertentu (misalnya, Euclidean distance). Kelas mayoritas di antara K tetangga tersebut kemudian ditetapkan sebagai kelas prediksi untuk data baru.
+- Cara Kerja: KNN adalah algoritma non-parametrik berbasis jarak. Untuk mengklasifikasikan data baru, KNN mencari K sampel terdekat (tetangga) dari data tersebut dalam data latih. Kelas mayoritas di antara K tetangga tersebut kemudian ditetapkan sebagai kelas prediksi.
 - Implementasi & Parameter yang Digunakan:
-   - Model diinisialisasi menggunakan KNeighborsClassifier().
-   - Semua parameter menggunakan nilai default dari library scikit-learn. Ini termasuk:
-   - n_neighbors=5: Jumlah tetangga terdekat yang dipertimbangkan.
-   - weights='uniform': Semua titik dalam setiap lingkungan diberi bobot yang sama.
-   - metric='minkowski' (dengan p=2, yang setara dengan jarak Euclidean).
-   - Model dilatih menggunakan X_pca dan y_train.
+   - Model diinisialisasi menggunakan KNeighborsClassifier() dengan parameter default dari library scikit-learn. Ini umumnya termasuk n_neighbors=5 (jumlah tetangga), weights='uniform', dan metric='minkowski' (setara dengan jarak Euclidean).
 
 4. XGBoost Classifier (Extreme Gradient Boosting):
-- Cara Kerja: XGBoost adalah implementasi dari algoritma gradient boosting yang sangat efisien dan powerful. Algoritma ini membangun model secara ensemble (gabungan) dari banyak decision tree yang lemah secara sekuensial. Setiap tree baru dibangun untuk memperbaiki kesalahan dari tree sebelumnya. XGBoost menggunakan regularisasi (L1 dan L2) untuk mencegah overfitting dan memiliki banyak optimasi untuk kecepatan dan performa.
+- Cara Kerja: XGBoost adalah implementasi dari algoritma gradient boosting yang membangun model secara ensemble dari banyak decision tree secara sekuensial, di mana setiap tree baru memperbaiki kesalahan dari tree sebelumnya. XGBoost dikenal karena efisiensi dan performa tingginya.
 - Implementasi & Parameter yang Digunakan:
    - Model diinisialisasi menggunakan XGBClassifier().
-   - use_label_encoder=False: Parameter ini digunakan untuk menonaktifkan penggunaan LabelEncoder internal dan menghindari peringatan terkait deprecation.
-   - eval_metric='mlogloss': Metrik yang digunakan untuk evaluasi selama proses training jika ada set validasi (atau untuk tujuan internal). 'mlogloss' adalah metrik LogLoss untuk klasifikasi multikelas (juga bekerja untuk biner).
-   - Parameter lain yang fundamental seperti n_estimators (jumlah pohon), learning_rate, max_depth (kedalaman maksimum pohon), dll., menggunakan nilai default dari library XGBoost.
-   - Model dilatih menggunakan X_pca dan y_train.
+   - Parameter yang digunakan termasuk use_label_encoder=False (untuk menghindari peringatan), eval_metric='mlogloss', dan random_state=42.
+   - Parameter fundamental lainnya seperti n_estimators, learning_rate, dan max_depth menggunakan nilai default dari library XGBoost pada iterasi ini.
+
+Semua model dilatih menggunakan data X_train_pca_optimal dan y_train. Prediksi kemudian dilakukan pada X_test_pca_optimal untuk evaluasi performa.
 
 ## Evaluation
-Tahap evaluasi bertujuan untuk mengukur seberapa baik performa model-model yang telah dilatih dalam memprediksi serangan jantung pada data uji.
+ahap evaluasi bertujuan untuk mengukur seberapa baik performa model-model yang telah dilatih dalam memprediksi serangan jantung pada data uji (X_test_pca_optimal dan y_test). Penggunaan data uji memastikan bahwa evaluasi dilakukan pada data yang belum pernah dilihat sebelumnya oleh model, sehingga memberikan gambaran yang lebih objektif tentang kemampuan generalisasi model.
 
 ### Metrik yang Digunakan
 
-- **Accuracy**: Proporsi total prediksi yang benar dari keseluruhan data uji. Formula: (TP+TN)/(TP+TN+FP+FN)
-- **Precision (untuk kelas 1 - serangan jantung)**: Dari semua prediksi yang menyatakan pasien mengalami serangan jantung, berapa banyak yang benar-benar mengalami serangan jantung. Penting untuk menghindari false positive yang berlebihan. Formula: TP/(TP+FP)
-- **Recall (Sensitivity) (untuk kelas 1 - serangan jantung)**: Dari semua pasien yang sebenarnya mengalami serangan jantung, berapa banyak yang berhasil diprediksi dengan benar oleh model. Ini sangat krusial dalam konteks medis karena kegagalan mendeteksi kasus positif (false negative) bisa berakibat fatal. Formula: TP/(TP+FN)
-- **F1-score (untuk kelas 1 - serangan jantung)**: Rata-rata harmonik dari precision dan recall. Memberikan keseimbangan antara kedua metrik tersebut. Formula: 2
-times(Precision
-timesRecall)/(Precision+Recall)
+- Accuracy: Proporsi total prediksi yang benar dari keseluruhan data uji. Formula: (TP+TN)/(TP+TN+FP+FN)
+- Precision (untuk kelas 1 - serangan jantung): Dari semua prediksi yang menyatakan pasien mengalami serangan jantung, berapa banyak yang benar-benar mengalami serangan jantung. Penting untuk menghindari false positive yang berlebihan. Formula: TP/(TP+FP)
+- Recall (Sensitivity) (untuk kelas 1 - serangan jantung): Dari semua pasien yang sebenarnya mengalami serangan jantung, berapa banyak yang berhasil diprediksi dengan benar oleh model. Ini sangat krusial dalam konteks medis karena kegagalan mendeteksi kasus positif (false negative) bisa berakibat fatal. Formula: TP/(TP+FN)
+- F1-score (untuk kelas 1 - serangan jantung): Rata-rata harmonik dari precision dan recall. Memberikan keseimbangan antara kedua metrik tersebut. Formula: 2×(Precision×Recall)/(Precision+Recall)
 
 **Dimana:**
 - TP (True Positive): Pasien serangan jantung yang diprediksi serangan jantung.
@@ -252,31 +263,36 @@ timesRecall)/(Precision+Recall)
 
 | Model               | Accuracy | Precision (1) | Recall (1) | F1-score (1) |
 |---------------------|----------|----------------|------------|--------------|
-| Logistic Regression | 0.4862   | 0.40           | 0.58       | 0.48         |
-| SVM                 | 0.5990   | 0.00           | 0.00       | 0.00         |
-| KNN                 | 0.7110   | 0.67           | 0.55       | 0.60         |
-| XGBoost             | 0.6303   | 0.70           | 0.14       | 0.23         |
+| Logistic Regression | 0.7020	| 0.61           | 0.69       | 0.65         |
+| SVM (Linear SVC)    | 0.7172   | 0.68           | 0.54       | 0.60         |
+| KNN                 | 0.6861   | 0.63           | 0.52       | 0.57         |
+| XGBoost             | 0.7216   | 0.67           | 0.59       | 0.63         |
 
 ### Analisis Hasil dan Hubungan dengan Business Understanding:
+Setelah melakukan perbaikan pada tahap persiapan data, khususnya dengan menggunakan 21 komponen utama hasil PCA yang menangkap ~93.6% varians data, serta memastikan evaluasi dilakukan pada data uji, diperoleh hasil performa model yang lebih realistis.
 
 **Menjawab Problem Statement (PS1 & PS2):**
-- **PS1 (Bagaimana cara memprediksi kemungkinan serangan jantung?):** Proyek ini menunjukkan bahwa machine learning dapat digunakan untuk memprediksi kemungkinan serangan jantung dengan menganalisis data kesehatan. Model seperti KNN menunjukkan kemampuan yang cukup baik dalam tugas ini, meskipun akurasinya belum sempurna.
-- **PS2 (Algoritma machine learning mana yang paling efektif?):** Berdasarkan metrik evaluasi, K-Nearest Neighbors (KNN) terbukti menjadi algoritma yang paling efektif secara keseluruhan untuk dataset dan konfigurasi ini. KNN memberikan akurasi tertinggi (71.1%) dan F1-score terbaik (0.60) untuk kelas positif, menunjukkan keseimbangan yang relatif baik antara precision (0.67) dan recall (0.55).
-   - SVM gagal total dalam mengidentifikasi kasus positif (recall dan precision 0.00 untuk kelas 1), menjadikannya tidak berguna meskipun akurasinya lebih tinggi dari Logistic Regression. Ini kemungkinan disebabkan oleh ketidakseimbangan kelas atau pemilihan parameter/kernel yang kurang tepat.
-   - XGBoost, meskipun memiliki precision tertinggi (0.70), memiliki recall yang sangat rendah (0.14), artinya banyak kasus serangan jantung yang terlewatkan.
-   - Logistic Regression dengan class_weight='balanced' menunjukkan recall yang lebih baik (0.58) dibandingkan precisionnya (0.40), namun akurasi keseluruhannya paling rendah.
-**Mencapai Goals (G1 & G2):**
-- G1 (Membangun model prediksi dengan akurasi dan performa metrik yang layak): Model KNN mencapai akurasi 71.1% dan F1-score 0.60 untuk prediksi serangan jantung. Meskipun ini adalah hasil terbaik di antara model yang diuji dan menunjukkan potensi, "layak" dalam konteks medis mungkin memerlukan standar yang lebih tinggi, terutama untuk recall. Ada ruang untuk peningkatan lebih lanjut.
-- G2 (Membandingkan performa beberapa algoritma): Tujuan ini tercapai. Empat algoritma berbeda telah diimplementasikan dan dievaluasi, memberikan wawasan tentang kekuatan dan kelemahan masing-masing pada dataset ini.
-**Dampak Solution Statements:**
-- Menerapkan empat algoritma klasifikasi: Ini sangat berdampak karena memungkinkan perbandingan langsung dan pemilihan model yang paling sesuai. Tanpa perbandingan ini, kita tidak akan tahu bahwa KNN adalah yang terbaik di antara opsi yang diuji.
-- Melakukan balancing pada kelas target (contoh class_weight='balanced' untuk Logistic Regression): Untuk Logistic Regression, penggunaan class_weight='balanced' membantu meningkatkan recall untuk kelas positif (0.58), yang penting dalam konteks medis. Tanpa ini, model mungkin akan lebih bias ke kelas mayoritas. Meskipun akurasi keseluruhan LR rendah, teknik ini menunjukkan dampak positif pada sensitivitas model terhadap kelas minoritas. Untuk model lain, jika ketidakseimbangan data masih menjadi isu, teknik balancing lain (seperti SMOTE atau undersampling) bisa dieksplorasi.
-- Mengevaluasi performa dengan metrik komprehensif: Penggunaan accuracy, precision, recall, dan F1-score memberikan pandangan yang lebih holistik daripada hanya accuracy. Misalnya, SVM memiliki accuracy 60%, namun precision dan recall 0 untuk kelas positif, yang tidak akan terlihat jika hanya melihat accuracy. Metrik ini krusial untuk memahami trade-off, terutama pentingnya recall dalam kasus medis.
+- **PS1 (Bagaimana cara memprediksi kemungkinan serangan jantung?):** Proyek ini menunjukkan bahwa machine learning, setelah melalui persiapan data yang cermat termasuk reduksi dimensi dengan PCA dan penskalaan, dapat digunakan untuk memprediksi kemungkinan serangan jantung. Keempat model yang diuji memberikan tingkat akurasi antara 68% hingga 72% pada data uji.
+- **PS2 (Algoritma machine learning mana yang paling efektif?):**
+   - Berdasarkan akurasi keseluruhan tertinggi, XGBoost (72.16%) menunjukkan performa sedikit lebih unggul, diikuti oleh SVM (LinearSVC) (71.72%).
+   - Namun, jika fokus pada kemampuan mendeteksi kasus serangan jantung (recall kelas 1), Logistic Regression dengan class_weight='balanced' (recall 0.69) adalah yang terbaik di antara model yang diuji. Ini berarti Logistic Regression paling banyak berhasil mengidentifikasi pasien yang benar-benar mengalami serangan jantung.
+   - Untuk precision kelas 1 (keakuratan prediksi positif), SVM (LinearSVC) (0.68) dan XGBoost (0.67) menunjukkan hasil terbaik.
+   - Tidak ada satu model yang unggul mutlak di semua metrik. Pemilihan model "paling efektif" akan bergantung pada prioritas metrik mana yang dianggap paling penting untuk kasus penggunaan ini (misalnya, meminimalkan false negative mungkin lebih krusial).
+
+- **Mencapai Goals (G1 & G2):**
+   - G1 (Membangun model prediksi dengan akurasi dan performa metrik yang layak): Dengan akurasi tertinggi mencapai ~72% dan recall untuk kasus serangan jantung mencapai ~69% (oleh Logistic Regression), model-model ini menunjukkan potensi. Apakah ini "layak" untuk implementasi klinis masih memerlukan pertimbangan lebih lanjut dan standar yang lebih tinggi, terutama untuk recall. Namun, ini adalah peningkatan signifikan dari iterasi sebelumnya.
+   - G2 (Membandingkan performa beberapa algoritma): Tujuan ini tercapai. Empat algoritma telah diimplementasikan dan dievaluasi pada representasi data yang sama (21 komponen PCA), memberikan perbandingan yang adil dan wawasan tentang trade-off masing-masing.
+
+- **Dampak Solution Statements:**
+   - Menerapkan empat algoritma klasifikasi: Memungkinkan perbandingan langsung dan identifikasi kekuatan relatif masing-masing model pada dataset yang telah diproses.
+   - Melakukan balancing pada kelas target (class_weight='balanced' untuk Logistic Regression): Terbukti efektif meningkatkan recall untuk kelas minoritas (serangan jantung) pada model Logistic Regression, menjadikannya kandidat kuat jika prioritasnya adalah sensitivitas terhadap kasus positif.
+   - Mengevaluasi performa dengan metrik komprehensif: Penggunaan accuracy, precision, recall, dan F1-score sangat penting untuk memahami performa model secara menyeluruh, terutama trade-off antara mendeteksi kasus positif dan keakuratan prediksi positif tersebut.
 
 ### Kesimpulan Evaluasi:
-Model KNN menunjukkan performa terbaik secara keseluruhan pada dataset ini dengan akurasi 71.1% dan F1-score 0.60 untuk prediksi serangan jantung. Meskipun demikian, recall sebesar 0.55 untuk kasus serangan jantung (kelas 1) mengindikasikan bahwa model masih melewatkan sekitar 45% kasus aktual. Dalam aplikasi medis, recall yang tinggi seringkali lebih diutamakan untuk meminimalkan risiko pasien tidak terdeteksi. SVM gagal total dalam memprediksi kelas positif. XGBoost memiliki presisi yang baik tetapi recall yang sangat buruk. Logistic Regression dengan penyeimbangan kelas menunjukkan upaya untuk menangani ketidakseimbangan tetapi performa keseluruhannya masih di bawah KNN.
+Setelah optimasi pada tahap persiapan data dengan menggunakan 21 komponen PCA, semua model menunjukkan peningkatan performa yang signifikan dibandingkan dengan penggunaan 2 komponen PCA. XGBoost mencapai akurasi tertinggi secara keseluruhan (72.16%) pada data uji. Namun, Logistic Regression (dengan class_weight='balanced') menunjukkan recall tertinggi untuk kasus serangan jantung (kelas 1) sebesar 0.69, yang merupakan metrik krusial dalam konteks medis untuk meminimalkan kasus yang terlewat (false negative). SVM dalam bentuk LinearSVC menunjukkan presisi tertinggi untuk kelas 1 (0.68) dan waktu pelatihan yang sangat cepat. KNN, meskipun meningkat, menunjukkan recall terendah untuk kelas 1 di antara model yang lebih baik.
 
-Untuk implementasi nyata, perlu dipertimbangkan lebih lanjut bagaimana meningkatkan recall model KNN atau mengeksplorasi teknik lain seperti hyperparameter tuning yang lebih ekstensif, feature engineering yang lebih canggih, atau penggunaan teknik ensemble yang berbeda, serta validasi dengan data yang lebih beragam.
+Pilihan model terbaik akan bergantung pada metrik mana yang diprioritaskan. Jika tujuannya adalah untuk memaksimalkan deteksi kasus serangan jantung, Logistic Regression adalah pilihan yang menonjol. Jika akurasi keseluruhan atau presisi prediksi positif sedikit lebih diutamakan, XGBoost atau LinearSVC bisa dipertimbangkan.
 
+Meskipun ada peningkatan, performa model (terutama recall untuk kelas 1 yang belum mencapai tingkat sangat tinggi) menunjukkan bahwa masih ada ruang untuk perbaikan lebih lanjut. Langkah-langkah seperti hyperparameter tuning yang lebih ekstensif untuk semua model (terutama XGBoost dan LinearSVC), eksplorasi penggunaan fitur tanpa PCA (hanya dengan scaling), atau teknik penanganan ketidakseimbangan data yang lebih lanjut seperti SMOTE (diterapkan hanya pada data latih) dapat dipertimbangkan untuk iterasi berikutnya guna meningkatkan performa model secara keseluruhan.
 
 
